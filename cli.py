@@ -79,7 +79,7 @@ if __name__=="__main__":
                     fieldnames.insert(0, 'stop')
                     pair_writer = csv.DictWriter(out_file, fieldnames=fieldnames)
                     pair_writer.writeheader()
-                    for row, values in pairs.items():
+                    for row, values in sorted(pairs.items()):
                         values['stop'] = row
                         pair_writer.writerow(values)
                 log.info('wrote output.csv')
