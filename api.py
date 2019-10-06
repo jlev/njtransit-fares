@@ -2,21 +2,27 @@ import os
 from datetime import datetime
 import requests
 from requests_html import HTMLSession
+import logging
 
 import stops
 from pagecache import PageCache
 
 session = HTMLSession()
 raw_cache = PageCache('raw')
+log = logging.getLogger(__name__)
 
 def parse_page(body):
-    # gets first trip AccordionPanel, pulls out Total Regular fare 
+    # gets first trip AccordionPanel, pulls out Total Regular fare
     trips = body.find('#Accordion1')
-    first_panel = trips[0].find('.AccordionPanel')[0]
-    summary = first_panel.find('tr')[-3]
-    total = summary.find('td')[1].text
-    # todo, parse as decimal?
-    return total
+    try:
+        first_panel = trips[0].find('.AccordionPanel')[0]
+        summary = first_panel.find('tr')[-3]
+        total = summary.find('td')[1].text
+        # todo, parse as decimal?
+        return total
+    except:
+        log.error('unable to find trip in page body')
+        return False
 
 def get_page(options):
     response = session.post(
@@ -27,17 +33,17 @@ def get_page(options):
         data=options
     )
     if not response.ok:
-        print(response.status_code)
+        log.error(response.status_code)
         return False
         
     return response.html
 
 def get_trip(start, end, when, cache=True):
     if start not in stops.NAMES:
-        print(f'{start} not in valid stop names')
+        log.error(f'{start} not in valid stop names')
         return None
     if end not in stops.NAMES:
-        print(f'{end} not in valid stop names')
+        log.error(f'{end} not in valid stop names')
         return None
 
     start_sel = stops.LOOKUP.get(start)
@@ -79,6 +85,6 @@ if __name__=="__main__":
     start = 'ORANGE'
     end = 'EAST ORANGE'
     when = datetime(year=2019, month=10, day=9, hour=9, minute=30)
-    print(f'getting {start} to {end} at {when}')
+    log.info(f'getting {start} to {end} at {when}')
     fare = get_trip(start, end, when)
-    print(f'fare: {fare}')
+    log.info(f'fare: {fare}')
