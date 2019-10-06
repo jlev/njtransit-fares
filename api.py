@@ -11,6 +11,9 @@ session = HTMLSession()
 raw_cache = PageCache('raw')
 log = logging.getLogger(__name__)
 
+class ParseError(Exception):
+    pass
+
 def parse_page(body):
     # gets first trip AccordionPanel, pulls out Total Regular fare
     trips = body.find('#Accordion1')
@@ -21,8 +24,7 @@ def parse_page(body):
         # todo, parse as decimal?
         return total
     except:
-        log.error('unable to find trip in page body')
-        return False
+        raise ParseError('unable to find trip in page body')
 
 def get_page(options):
     response = session.post(
@@ -77,8 +79,12 @@ def get_trip(start, end, when, cache=True):
         response = get_page(trip_options)
 
     # parse response to get trip total fare
-    parsed = parse_page(response)
-    return parsed
+    try:
+        parsed = parse_page(response)
+        return parsed
+    except ParseError:
+        log.error(f'unable to find fare for {start}-{end}')
+    
 
 if __name__=="__main__":
     # simple test condition
