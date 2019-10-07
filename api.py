@@ -64,11 +64,10 @@ def get_trip(start, end, when, cache=True):
         "Minute": when.strftime('%-M'),
     }
 
-    trip_code = start+'-'+end+'-'+when.strftime('%Y%m%d-%H%M')
 
     # check filesystem cache for existing scraped html
     if cache:
-        filename = trip_code+'.html'
+        filename = f'{start}-{end}.html'
         cached_response = raw_cache.get(filename)
         if cached_response:
             response = cached_response
