@@ -15,16 +15,23 @@ class ParseError(Exception):
     pass
 
 def parse_page(body):
-    # gets first trip AccordionPanel, pulls out Total Regular fare
-    trips = body.find('#Accordion1')
+    # gets trips from AccordionPanel, pulls out lowest Total Regular fare
     try:
-        first_panel = trips[0].find('.AccordionPanel')[0]
-        summary = first_panel.find('tr')[-3]
-        total = summary.find('td')[1].text
-        # todo, parse as decimal?
-        return total
-    except:
+        accordion = body.find('#Accordion1')[0]
+    except IndexError:
         raise ParseError('unable to find trip in page body')
+
+    trips = accordion.find('.AccordionPanel')
+    lowest = 0
+    for panel in trips:
+        summary = panel.find('tr')[-3]
+        total_str = summary.find('td')[1].text
+        total = float(total_str.replace('$',''))
+        if (total < lowest) or (lowest == 0):
+            lowest = total
+        
+    if lowest:
+        return lowest
 
 def get_page(options):
     response = session.post(
