@@ -1,4 +1,4 @@
-import argparse
+import argparse, sys
 from datetime import datetime
 from collections import defaultdict
 import itertools
@@ -32,6 +32,19 @@ def valid_town(s):
         log.error(f'{s} not in valid stop names')
         return None
 
+def write_outfile(pairs, filename='output.csv'):
+    # output huge spreadsheet with all possible stop combinations
+    with open(filename, 'w') as out_file:
+        fieldnames = list(stops.NAMES)
+        fieldnames.insert(0, 'stop')
+        pair_writer = csv.DictWriter(out_file, fieldnames=fieldnames)
+        pair_writer.writeheader()
+        for town in stops.NAMES:
+            values = pairs[town]
+            values['stop'] = town
+            pair_writer.writerow(values)
+    log.info('wrote '+filename)
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Get bus fares for NJ Transit')
     parser.add_argument('origin', help='TOWN', type=valid_town, nargs='?')
@@ -42,7 +55,7 @@ if __name__=="__main__":
     parser.add_argument('--log', help='LEVEL', default='error')
     args = parser.parse_args()
 
-    console_out = logging.StreamHandler()
+    console_out = logging.StreamHandler(sys.stdout)
     console_out.setLevel(args.log.upper())
     log.addHandler(console_out)
     
@@ -62,6 +75,7 @@ if __name__=="__main__":
             pairs = defaultdict(dict)
             try:
                 for route in route_reader:
+                    print('route '+route[0])
                     # each route contains a list of towns to check legs
                     # split field by comma, check for valid name, and filter out nones
                     towns = filter(None.__ne__, [valid_town(t) for t in route[2].split(',')])
@@ -70,16 +84,9 @@ if __name__=="__main__":
                     for (orig,dest) in combinations:
                         log.info(f'{orig}-{dest}')
                         pairs[orig][dest] = get_trip(orig, dest, when)
-
+                    write_outfile(pairs)
+            except KeyboardInterrupt:
+                print('quitter')
             finally:
-                # output huge spreadsheet with all possible stop combinations
                 log.debug(pairs)
-                with open('output.csv', 'w') as out_file:
-                    fieldnames = list(stops.NAMES)
-                    fieldnames.insert(0, 'stop')
-                    pair_writer = csv.DictWriter(out_file, fieldnames=fieldnames)
-                    pair_writer.writeheader()
-                    for row, values in sorted(pairs.items()):
-                        values['stop'] = row
-                        pair_writer.writerow(values)
-                log.info('wrote output.csv')
+                write_outfile(pairs)
